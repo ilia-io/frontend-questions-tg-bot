@@ -5,12 +5,19 @@ const bot = new Bot(process.env.BOT_API_KEY);
 console.log(`Bot is running!`);
 
 bot.command('start', async (ctx) => {
+  const startKeyboard = new Keyboard()
+    .text('HTML')
+    .text('CSS')
+    .row()
+    .text('JavaScript')
+    .text('React')
+    .resized();
   await ctx.reply('Hello World!');
-  console.log(ctx);
+  await ctx.reply('Выбери тему вопроса в меню 👇', { reply_markup: startKeyboard });
 });
 
-bot.hears('html', async (ctx) => {
-  await ctx.reply('Hey there!');
+bot.hears(['HTML', 'CSS', 'JavaScript', 'React'], async (ctx) => {
+  await ctx.reply(`Что такое ${ctx.message.text}?`);
 });
 
 bot.catch((err) => {
