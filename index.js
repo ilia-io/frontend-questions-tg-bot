@@ -1,6 +1,6 @@
 const { Bot, GrammyError, HttpError, Keyboard, InlineKeyboard } = require('grammy');
 require('dotenv').config();
-const { getRandomQuestion } = require('./utils');
+const { getRandomQuestion, getCorrectAnswer } = require('./utils');
 
 const bot = new Bot(process.env.BOT_API_KEY);
 console.log(`Bot is running!`);
@@ -20,27 +20,61 @@ bot.command('start', async (ctx) => {
 bot.hears(['HTML', 'CSS', 'JavaScript', 'React'], async (ctx) => {
   const topic = ctx.message.text;
   const question = getRandomQuestion(topic);
-  const inlineKeyboard = new InlineKeyboard().text(
-    `Узнать ответ`,
-    JSON.stringify({
-      type: ctx.message.text,
-      questionId: question.id,
-      command: `getAnswer`,
-    })
-  );
+  // const inlineKeyboard = new InlineKeyboard().text(
+  //   `Узнать ответ`,
+  //   JSON.stringify({
+  //     type: ctx.message.text,
+  //     questionId: question.id,
+  //     command: `getAnswer`,
+  //   })
+  // );
+  let inlineKeyboard;
+  if (question.hasOptions) {
+    const buttons = question.options.map((option) => {
+      return [
+        InlineKeyboard.text(
+          option.text,
+          JSON.stringify({
+            type: `${topic}-option`,
+            isCorrect: option.isCorrect,
+            questionId: question.id,
+          })
+        ),
+      ];
+    });
+    inlineKeyboard = InlineKeyboard.from(buttons);
+  } else {
+    inlineKeyboard = new InlineKeyboard().text(
+      `Узнать ответ`,
+      JSON.stringify({
+        type: topic,
+        questionId: question.id,
+        command: `getAnswer`,
+      })
+    );
+  }
   await ctx.reply(question.text, { reply_markup: inlineKeyboard });
 });
 
 bot.on('callback_query:data', async (ctx) => {
-  if (ctx.callbackQuery.data === 'cancel') {
-    await ctx.reply(`Отменено`);
+  const callbackData = JSON.parse(ctx.callbackQuery.data);
+  const { type, questionId, command, isCorrect, answer } = callbackData;
+  // if (ctx.callbackQuery.data === 'cancel') {
+  //   await ctx.reply(`Отменено`);
+  //   await ctx.answerCallbackQuery();
+  //   return;
+  // }
+  if (!callbackData.type.includes('-option')) {
+    const answer = getCorrectAnswer(callbackData.type, callbackData.questionId);
+    await ctx.reply(answer);
     await ctx.answerCallbackQuery();
-    return;
   }
 
-  const callbackData = JSON.parse(ctx.callbackQuery.data);
-  const { type, questionId, command } = callbackData;
-  await ctx.reply(`Выбрана тема ${type}`);
+  if (isCorrect) {
+    await ctx.reply(`Верно!`);
+  } else {
+    await ctx.reply(`Неверно!`);
+  }
   await ctx.answerCallbackQuery();
 });
 
