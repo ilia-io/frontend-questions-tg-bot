@@ -1,5 +1,6 @@
 const { Bot, GrammyError, HttpError, Keyboard, InlineKeyboard } = require('grammy');
 require('dotenv').config();
+const { getRandomQuestion } = require('./utils');
 
 const bot = new Bot(process.env.BOT_API_KEY);
 console.log(`Bot is running!`);
@@ -17,13 +18,17 @@ bot.command('start', async (ctx) => {
 });
 
 bot.hears(['HTML', 'CSS', 'JavaScript', 'React'], async (ctx) => {
-  const inlineKeyboard = new InlineKeyboard()
-    .text(
-      `Получить ответ`,
-      JSON.stringify({ type: ctx.message.text, questionId: 1, command: `getAnswer` })
-    )
-    .text(`Отменить`, `cancel`);
-  await ctx.reply(`Что такое ${ctx.message.text}?`, { reply_markup: inlineKeyboard });
+  const topic = ctx.message.text;
+  const question = getRandomQuestion(topic);
+  const inlineKeyboard = new InlineKeyboard().text(
+    `Узнать ответ`,
+    JSON.stringify({
+      type: ctx.message.text,
+      questionId: question.id,
+      command: `getAnswer`,
+    })
+  );
+  await ctx.reply(question.text, { reply_markup: inlineKeyboard });
 });
 
 bot.on('callback_query:data', async (ctx) => {
