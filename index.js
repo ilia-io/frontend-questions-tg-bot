@@ -12,22 +12,15 @@ bot.command('start', async (ctx) => {
     .row()
     .text('JavaScript')
     .text('React')
+    .row()
+    .text('Случайный вопрос')
     .resized();
-  await ctx.reply('Hello World!');
   await ctx.reply('Выбери тему вопроса в меню 👇', { reply_markup: startKeyboard });
 });
 
-bot.hears(['HTML', 'CSS', 'JavaScript', 'React'], async (ctx) => {
-  const topic = ctx.message.text;
-  const question = getRandomQuestion(topic);
-  // const inlineKeyboard = new InlineKeyboard().text(
-  //   `Узнать ответ`,
-  //   JSON.stringify({
-  //     type: ctx.message.text,
-  //     questionId: question.id,
-  //     command: `getAnswer`,
-  //   })
-  // );
+bot.hears(['HTML', 'CSS', 'JavaScript', 'React', 'Случайный вопрос'], async (ctx) => {
+  const topic = ctx.message.text.toLowerCase();
+  const { question, returnedTopic } = getRandomQuestion(topic);
   let inlineKeyboard;
   if (question.hasOptions) {
     const buttons = question.options.map((option) => {
@@ -35,7 +28,7 @@ bot.hears(['HTML', 'CSS', 'JavaScript', 'React'], async (ctx) => {
         InlineKeyboard.text(
           option.text,
           JSON.stringify({
-            type: `${topic}-option`,
+            type: `${returnedTopic}-option`,
             isCorrect: option.isCorrect,
             questionId: question.id,
           })
@@ -47,7 +40,7 @@ bot.hears(['HTML', 'CSS', 'JavaScript', 'React'], async (ctx) => {
     inlineKeyboard = new InlineKeyboard().text(
       `Узнать ответ`,
       JSON.stringify({
-        type: topic,
+        type: returnedTopic,
         questionId: question.id,
         command: `getAnswer`,
       })
@@ -58,23 +51,27 @@ bot.hears(['HTML', 'CSS', 'JavaScript', 'React'], async (ctx) => {
 
 bot.on('callback_query:data', async (ctx) => {
   const callbackData = JSON.parse(ctx.callbackQuery.data);
-  const { type, questionId, command, isCorrect, answer } = callbackData;
-  // if (ctx.callbackQuery.data === 'cancel') {
-  //   await ctx.reply(`Отменено`);
-  //   await ctx.answerCallbackQuery();
-  //   return;
-  // }
-  if (!callbackData.type.includes('-option')) {
-    const answer = getCorrectAnswer(callbackData.type, callbackData.questionId);
-    await ctx.reply(answer);
+  const { type, questionId, isCorrect } = callbackData;
+
+  if (!callbackData.type.includes(`option`)) {
+    const answer = getCorrectAnswer(type, questionId);
+    await ctx.reply(answer, {
+      parse_mode: 'HTML',
+      disable_web_page_preview: true,
+    });
     await ctx.answerCallbackQuery();
+    return;
   }
 
   if (isCorrect) {
-    await ctx.reply(`Верно!`);
-  } else {
-    await ctx.reply(`Неверно!`);
+    await ctx.reply(`Верно ✅`);
+    await ctx.answerCallbackQuery();
+    return;
   }
+
+  const typeWoOption = type.split('-')[0];
+  const answer = getCorrectAnswer(typeWoOption, questionId);
+  await ctx.reply(`Неверно ❌ Правильный ответ: ${answer}`);
   await ctx.answerCallbackQuery();
 });
 

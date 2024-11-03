@@ -1,20 +1,22 @@
-const questions = require('./db/pomazkov-js-questions.json');
+const questions = require('./db/default-questions.json');
 const { Random } = require('random-js');
 
 const getRandomQuestion = (topic) => {
-  const questionTopic = topic.toLowerCase();
-  // native js
-  // const randomIndex = Math.floor(Math.random() * questions[questionTopic].length);
-  // return questions[questionTopic][randomIndex];
-
   const random = new Random();
+  if (topic === `случайный вопрос`) {
+    topic = random.pick(Object.keys(questions));
+  }
+  // native js
+  // const randomIndex = Math.floor(Math.random() * questions[topic].length);
+  // return questions[topic][randomIndex];
+
   // random-js integer
-  // const randomIndex = random.integer(0, questions[questionTopic].length - 1);
-  // return questions[questionTopic][randomIndex];
+  // const randomIndex = random.integer(0, questions[topic].length - 1);
+  // return questions[topic][randomIndex];
 
   // random-js pick
-  const randomQuestion = random.pick(questions[questionTopic]);
-  return randomQuestion;
+  const randomQuestion = random.pick(questions[topic]);
+  return { question: randomQuestion, returnedTopic: topic.toLowerCase() };
 };
 
 const getCorrectAnswer = (topic, id) => {
